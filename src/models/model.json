@@ -1,0 +1,207 @@
+{
+    "productId": "PROD-002",
+    "modulePath": [
+      {
+        "path": [
+          {
+            "pathName": "Analytics",
+            "section": [
+              {
+                  "sectionName" : "Today Analytics"
+              },
+              {
+                  "sectionName" : "OPD Request Via"
+              },
+              {
+                  "sectionName" : "OPD Sessions"
+              },
+              {
+                  "sectionName" : "OPD OVERVIEW"
+              },
+              {
+                  "sectionName" : "OPD Type"
+              },
+              {
+                  "sectionName" : "OPD Estimation Types"
+              },
+              {
+                  "sectionName" : "Estimation Status Overview"
+              },
+              {
+                  "sectionName" : "Average Waiting time"
+              },
+              {
+                  "sectionName" : "Doctor Login Activity"
+              },
+              {
+                  "sectionName" : "Gender Overview"
+              }
+            ]
+          },
+          {
+            "pathName": "Appointment Module",
+            "section": [
+              {
+                  "sectionName" : "Online Appointments"
+              },
+              {
+                  "sectionName" : "Confirmed Appointments"
+              },
+              {
+                  "sectionName" : "Cancelled Appointments"
+              },
+              {
+                  "sectionName" : "Completed Appointments"
+              },
+              {
+                  "sectionName" : "Transfer Appointments"
+              },
+              {
+                  "sectionName" : "CC Appointments"
+              },
+              {
+                  "sectionName" : "New Appt Form"
+              }
+            ]
+          },
+          {
+            "pathName": "Doctor Module",
+            "section": [
+              {
+                  "sectionName" : "Close OPD Req"
+              },
+              {
+                  "sectionName" : "Doctor Availability"
+              },
+              {
+                  "sectionName" : "Doctor Details"
+              },
+              {
+                  "sectionName" : "Add New Doctor"
+              }
+            ]
+          },
+          {
+            "pathName": "MHC Module",
+            "section": [
+              {
+                  "sectionName" : "Online Packages"
+              },
+              {
+                  "sectionName" : "Confirmed Packages"
+              },
+              {
+                  "sectionName" : "Cancelled Packages"
+              },
+              {
+                  "sectionName" : "Completed Visits"
+              },
+              {
+                  "sectionName" : "Repeated Packages"
+              },
+              {
+                  "sectionName" : "New MHC Appt Form"
+              }
+            ]
+          },
+          {
+            "pathName": "Service Module",
+            "section": [
+              {
+                  "sectionName" : "Confirmed Services"
+              },
+              {
+                  "sectionName" : "Cancelled Services"
+              },
+              {
+                  "sectionName" : "Completed Services"
+              },
+              {
+                  "sectionName" : "New Service Appt Form"
+              }
+            ]
+          },
+          {
+            "pathName": "TV-Control Module",
+            "section": [
+              {
+                  "sectionName" : "Advertisement"
+              },
+              {
+                  "sectionName" : "Doctor Assignment"
+              }
+            ]
+          },
+          {
+            "pathName": "Individual Doctor Module",
+            "section": [
+              {
+                  "sectionName" : "Checked-in Consultaions"
+              },
+              {
+                  "sectionName" : "Today Consultations"
+              },
+              {
+                  "sectionName" : "Past Consultations"
+              },
+              {
+                  "sectionName" : "Future Consultations"
+              }
+            ]
+          },
+          {
+            "pathName": "MHC Coordinator Module",
+            "section": [
+              {
+                  "sectionName" : "Today MHC"
+              },
+              {
+                  "sectionName" : "Confirmed MHC Appts"
+              },
+              {
+                  "sectionName" : "Confirmed Radio Appts"
+              },
+              {
+                  "sectionName" : "Report Summary"
+              },
+              {
+                  "sectionName" : "Consultation Form"
+              },
+              {
+                  "sectionName" : "Radiology Form"
+              }
+            ]
+          },
+          {
+            "pathName": "Co-ordiantor Module",
+            "section": [
+              {
+                  "sectionName" : "Confirmed Services"
+              }
+            ]
+          },
+          {
+            "pathName": "Profile Management Module",
+            "section": [
+              {
+                  "sectionName" : "Profile Details"
+              },
+             {
+                  "sectionName" : "Account Creation"
+              },
+              {
+                  "sectionName" : "Reset Password"
+              },
+              {
+                  "sectionName" : "Delete account"
+              },
+              {
+                  "sectionName" : "Login details"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+  

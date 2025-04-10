@@ -23,7 +23,7 @@ const cookieParser = require('cookie-parser')
 // mongoose.connect.
 mongoose.connect(process.env.DB_URL)
     .then(() => console.log("Mongo DB Connected"))
-    .catch(() => console.log('error in connecting mongo bd'))
+    .catch(() => console.log('error in connecting mongo db'))
 
 //index route
 app.get('/', async (req, res) => {

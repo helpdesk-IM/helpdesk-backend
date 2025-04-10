@@ -3,6 +3,8 @@ const { Storage } = require('@google-cloud/storage');
 const path = require('path');
 const fs = require('fs');
 const ftp = require("basic-ftp");
+const { Client } = require("basic-ftp");
+
 
 
 // model
@@ -340,63 +342,109 @@ const postTicketAttachment = async (req, res) => {
 // };
 
 
+// const postTicketAttachmentFtp = async (req, res) => {
+//   try {
+//     const { clientId, title, description, menuPath, module } = req.body;
+
+//     if (!clientId || !title || !description || !menuPath || !module) {
+//       return res
+//         .status(400)
+//         .json({ error: "Please enter all required fields" });
+//     }
+
+//     if (!req.file) {
+//       return res.status(400).send("No file uploaded.");
+//     }
+
+//     console.log("Received file:", req.file.originalname);
+//      const fileName = req.file.originalname;
+//     const tempFilePath = path.join(__dirname, fileName);
+//     fs.writeFileSync(tempFilePath, req.file.buffer);
+//     console.log("File written to temp path");
+
+//     const remoteFilePath = `/public_html/helpdesk/${fileName}`;
+//     console.log(tempFilePath, remoteFilePath)
+
+//     try {
+//       await uploadToFTP(tempFilePath, remoteFilePath);
+//     } catch (err) {
+//       fs.unlinkSync(tempFilePath);
+//       return res
+//         .status(500)
+//         .json({ error: "FTP Upload Failed", details: err.message });
+//     }
+
+//     fs.unlinkSync(tempFilePath);
+//     const publicUrl = `https://inventionminds.com/helpdesk/${fileName}`;
+
+//     // const publicUrl = ftp://${process.env.FTP_HOST}/${remoteFolder}/${remoteFileName};
+
+//     const lastTicket = await ticketModel.findOne().sort({ createdAt: -1 });
+//     let newTicketNumber = "TKT-0001";
+
+//     if (lastTicket && lastTicket.ticketNumber) {
+//       const lastNumber = parseInt(lastTicket.ticketNumber.split("-")[1], 10);
+//       newTicketNumber = `TKT-${String(lastNumber + 1).padStart(4, "0")}`;
+//     }
+
+//     const newTicket = new ticketModel({
+//       ticketNumber: newTicketNumber,
+//       clientId,
+//       title,
+//       description,
+//       menuPath,
+//       module,
+//       attatchment: publicUrl,
+//     });
+
+//     await newTicket.save();
+//     console.log("Ticket saved successfully.");
+
+//     res.status(201).json({ message: "Ticket created successfully", newTicket });
+//   } catch (error) {
+//     console.error("Error creating ticket:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 const postTicketAttachmentFtp = async (req, res) => {
   try {
     const { clientId, title, description, menuPath, module } = req.body;
 
-    if (!clientId || !title || !description || !menuPath || !module) {
-      return res.status(400).json({ error: "Please enter all required fields" });
+    // Check only the required fields (file is now optional)
+    if (!clientId || !title || !description || !menuPath) {
+      return res
+        .status(400)
+        .json({ error: "Please enter all required fields" });
     }
 
-    if (!req.file) {
-      return res.status(400).send("No file uploaded.");
-    }
+    let publicUrl = null; // Default to null if no file is uploaded
 
-    console.log("Received file:", req.file.originalname);
+    // Handle file upload if a file is provided
+    if (req.file) {
+      console.log("Received file:", req.file.originalname);
+      const fileName = req.file.originalname;
+      const tempFilePath = path.join(__dirname, fileName);
+      fs.writeFileSync(tempFilePath, req.file.buffer);
+      console.log("File written to temp path");
 
-    const remoteFolder = "helpdesk";
-    const remoteFileName = req.file.originalname;
+      const remoteFilePath = `/public_html/helpdesk/${fileName}`;
+      console.log(tempFilePath, remoteFilePath);
 
-    // Ensure temp upload path exists
-    const uploadDir = path.join(__dirname, "../../uploads");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-      console.log("Created upload directory:", uploadDir);
-    }
+      try {
+        await uploadToFTP(tempFilePath, remoteFilePath);
+      } catch (err) {
+        fs.unlinkSync(tempFilePath);
+        return res
+          .status(500)
+          .json({ error: "FTP Upload Failed", details: err.message });
+      }
 
-    const tempFilePath = path.join(uploadDir, remoteFileName);
-    fs.writeFileSync(tempFilePath, req.file.buffer);
-    console.log("File written to temp path:", tempFilePath);
-
-    const client = new ftp.Client();
-    client.ftp.verbose = true;
-
-    try {
-      console.log("Connecting to FTP...");
-      await client.access({
-        host: process.env.FTP_HOST,
-        user: process.env.FTP_USER,
-        password: process.env.FTP_PASSWORD,
-        secure: false,
-      });
-
-      console.log("Connected to FTP. Ensuring folder...");
-      await client.ensureDir(remoteFolder);
-
-      console.log("Uploading file...");
-      await client.uploadFrom(tempFilePath, `${remoteFolder}/${remoteFileName}`);
-      console.log("File uploaded to FTP.");
-    } catch (ftpError) {
-      console.error("FTP Upload error:", ftpError);
-      return res.status(500).json({ error: "Failed to upload to FTP", ftpError: ftpError.message });
-    } finally {
-      client.close();
       fs.unlinkSync(tempFilePath);
-      console.log("Temp file deleted.");
+      publicUrl = `https://inventionminds.com/helpdesk/${fileName}`;
     }
 
-    const publicUrl = `ftp://${process.env.FTP_HOST}/${remoteFolder}/${remoteFileName}`;
-
+    // Generate ticket number
     const lastTicket = await ticketModel.findOne().sort({ createdAt: -1 });
     let newTicketNumber = "TKT-0001";
 
@@ -405,6 +453,7 @@ const postTicketAttachmentFtp = async (req, res) => {
       newTicketNumber = `TKT-${String(lastNumber + 1).padStart(4, "0")}`;
     }
 
+    // Create new ticket (attachment is optional)
     const newTicket = new ticketModel({
       ticketNumber: newTicketNumber,
       clientId,
@@ -412,19 +461,44 @@ const postTicketAttachmentFtp = async (req, res) => {
       description,
       menuPath,
       module,
-      attatchment: publicUrl,
+      attatchment: publicUrl, // Will be null if no file was uploaded
     });
 
     await newTicket.save();
     console.log("Ticket saved successfully.");
 
     res.status(201).json({ message: "Ticket created successfully", newTicket });
-
   } catch (error) {
     console.error("Error creating ticket:", error);
     res.status(500).json({ error: error.message });
   }
 };
+
+const FTP_CONFIG = {
+  host: "srv680.main-hosting.eu",  // Your FTP hostname
+  user: "u948610439",       // Your FTP username
+  password: "Bsrenuk@1993",   // Your FTP password
+  secure: false                    // Set to true if using FTPS
+};
+
+async function uploadToFTP(localFilePath, fileName) {
+  const client = new Client();
+  client.ftp.verbose = true;
+
+  try {
+    await client.access(FTP_CONFIG);
+
+    console.log("Connected to FTP Server!");
+    await client.ensureDir("/public_html/helpdesk"); // 🔥 Correct path
+    await client.uploadFrom(localFilePath, fileName); // ✅ Upload just the filename
+
+    console.log(`Uploaded: ${fileName}`);
+    await client.close();
+  } catch (error) {
+    console.error("FTP Upload Error:", error);
+    throw new Error("FTP upload failed: " + error.message);
+  }
+}
 
 // Helper function to create and save the ticket
 
@@ -483,7 +557,8 @@ const postTicketAttachmentFtp = async (req, res) => {
 
 const getAllTickets = async (req, res) => {
   try{
-    const allTickets = await ticketModel.find()
+  const allTickets = await ticketModel.find()
+  .populate('userDetails') // <-- populates based on the virtual field
     res.status(201).json(allTickets)
   }
   catch(error){
@@ -518,7 +593,6 @@ const getTicketsByClientId = async (req, res) => {
   }
 };
 
-
 const updateTicket = async (req, res, next) => {
   try{
     const id = req.params.id
@@ -536,5 +610,30 @@ const updateTicket = async (req, res, next) => {
   }
 }
 
+const updateComment = async(req, res) => {
+  try{
+    const {id} = req.params
+    const {comment, commentedBy} = req.body
 
-module.exports = { postTickets, createTicket, getAllTickets, postTicketAttachment, getTicketsByClientId, updateTicket, postTicketAttachmentFtp };
+    if(!comment){
+      return res.status(400).json({error : "comment not found"})
+    }
+
+    const updatedComment = await ticketModel.findByIdAndUpdate(
+      id,
+      {$set : {comment : comment, commentedBy : commentedBy}},
+      {new : true}
+    )
+
+    console.log(req.body)
+
+    return res.status(201).json(updatedComment)
+  
+  }
+  catch(error){
+    return res.status(500).json({error : error.message})
+  }
+}
+
+
+module.exports = { postTickets, createTicket, getAllTickets, postTicketAttachment, getTicketsByClientId, updateTicket, postTicketAttachmentFtp, updateComment };
