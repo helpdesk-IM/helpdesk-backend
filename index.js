@@ -2,11 +2,19 @@ const express = require('express')
 const app = express()
 const cors = require('cors');
 
+// app.use(cors({
+//     origin : "http://localhost:4300", 
+//     credentials: true,
+//     allowedHeaders: ['Authorization', 'Content-Type']
+//    }));
+
 app.use(cors({
-    origin : "http://localhost:4300", 
+    // origin : "http://localhost:4300", 
+    origin : ["https://support-demo.inventionminds.com", "http://localhost:4300","http://localhost:4200"],
     credentials: true,
     allowedHeaders: ['Authorization', 'Content-Type']
-   }));
+}));
+
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.json({ limit: '50mb' }));
 

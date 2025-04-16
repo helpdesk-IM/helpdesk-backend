@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const PRODUCT_TYPES = ["website", "product", "dm", "seo"];
+const PRODUCT_TYPES = ["website", "product", "dm", "seo", 'smm', 'ppc'];
 
 const productSchema = new mongoose.Schema(
   {

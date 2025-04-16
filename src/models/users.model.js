@@ -52,6 +52,10 @@ const userSchema = mongoose.Schema(
         },
         products : {
             type : [String],
+        },
+        ticketPrifix : {
+            type : String,
+            required: true,
         }
     },
     {
