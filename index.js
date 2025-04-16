@@ -10,7 +10,7 @@ const cors = require('cors');
 
 app.use(cors({
     // origin : "http://localhost:4300", 
-    origin : ["https://support-demo.inventionminds.com", "http://localhost:4300","http://localhost:4200"],
+    origin : ["https://support-demo.inventionminds.com", "http://localhost:4300","http://localhost:4200","http://13.201.226.150"],
     credentials: true,
     allowedHeaders: ['Authorization', 'Content-Type']
 }));
