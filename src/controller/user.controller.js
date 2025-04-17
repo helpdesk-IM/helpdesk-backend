@@ -2,7 +2,7 @@ const userModel = require('../models/users.model')
 
 const createUsers = async (req, res) => {
     try {
-        const { clientId, name, email, userName, password, role, phoneNo, place } = req.body
+        const { clientId, name, email, userName, password, role, phoneNo, place, ticketPrifix } = req.body
         let isAdmin
 
         if (!clientId || !name || !email || !userName || !password || !role || !phoneNo || !place) {
@@ -16,7 +16,7 @@ const createUsers = async (req, res) => {
             isAdmin = true
         )
 
-        const newUser = new userModel({ clientId, name, email, userName, password, role, isAdmin: isAdmin, phoneNo, place })
+        const newUser = new userModel({ clientId, name, email, userName, password, role, isAdmin: isAdmin, phoneNo, place, ticketPrifix })
         await newUser.save()
         res.status(201).json(newUser)
     }

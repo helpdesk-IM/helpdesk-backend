@@ -504,6 +504,14 @@ const postTicketAttachmentFtp = async (req, res) => {
         .json({ error: "Please enter all required fields" });
     }
 
+    if (title && typeof title === 'string' && title.trim() === '') {
+      return res.status(400).json({ error: "Title cannot be empty if provided" });
+    }
+    
+    if (description && typeof description === 'string' && description.trim() === '') {
+      return res.status(400).json({ error: "Description cannot be empty if provided" });
+    }
+
     // Parse menuPath if it’s a string
     let parsedMenuPath = menuPath;
     if (typeof menuPath === 'string') {
@@ -993,7 +1001,7 @@ const updateStatus = async (req, res) => {
     const formattedStatusKey = status.replace('-', '');
     const updateFields = {
       status,
-      clientNotification : true,
+      clientNotification: true,
       [`statusTimestamps.${formattedStatusKey}`]: new Date(),
     };
 
@@ -1004,16 +1012,26 @@ const updateStatus = async (req, res) => {
     );
 
     if (status === 'resolved') {
-      const to = 'rithish.manohar006@gmail.com'; // or wherever you store the client's email
-      const subject = `Ticket #${ticketNumber} has been resolved ✅`;
+      // Find the client's email using the clientId from the ticket
+      const client = await userModel.findOne({clientId : ticket.clientId});
+      
+      if (!client) {
+        console.log("Client not found for ticket:", ticketNumber);
+        return res.status(200).json({ 
+          message: "Status updated but client email not found", 
+          ticket: updated 
+        });
+      }
+
+      const to = client.email; // Use the email from the user model
+      const subject = ` Support Ticket Resolved: #${ticketNumber}`;
       const html = `
-        <div style="font-family: Arial, sans-serif;">
-          <h2 style="color: #4CAF50;">Your ticket has been resolved!</h2>
-          <p style="color: #000; font-family: 'Trebuchet MS', Tahoma, sans-serif; font-size: 16px;"><strong>Ticket Number:</strong> ${ticketNumber}</p>
-          <p style="color: #000; font-family: 'Trebuchet MS', Tahoma, sans-serif; font-size: 16px;"><strong>Status:</strong> ${status}</p>
-          <p style="font-family: 'Trebuchet MS'">Thank you for your patience. If you have further concerns, feel free to reply to this email.</p>
+        <div style="font-family: Arial, sans-serif;"> 
+          <h2 style="color: #4CAF50;">All Set! Your Support Ticket is Now Closed</h2> 
+          <p style="color: #000; font-family: 'Trebuchet MS', Tahoma, sans-serif; font-size: 16px;">If you have any further concerns or if the issue persists, please reply to this email or raise a new ticket.</p>
+          <p style="color: #000; font-family: 'Trebuchet MS', Tahoma, sans-serif; font-size: 16px;"><strong>We appreciate your patience and trust in our support team.</strong></p>
           <br/>
-          <p style="font-size: 12px; color: gray;">&copy; 2025 Your Company</p>
+          <p style="font-size: 12px; color: gray;">&copy; 2025 Invention Minds</p>
         </div>
       `;
 
@@ -1025,8 +1043,6 @@ const updateStatus = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Error", error });
   }
-
-
 };
 
 const updateAdminStatus = async (req, res) => {

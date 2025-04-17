@@ -2,19 +2,12 @@ const express = require('express')
 const app = express()
 const cors = require('cors');
 
-// app.use(cors({
-//     origin : "http://localhost:4300", 
-//     credentials: true,
-//     allowedHeaders: ['Authorization', 'Content-Type']
-//    }));
-
 app.use(cors({
     // origin : "http://localhost:4300", 
     origin : ["https://support-demo.inventionminds.com", "http://localhost:4300","http://localhost:4200","http://13.201.226.150"],
     credentials: true,
     allowedHeaders: ['Authorization', 'Content-Type']
-}));
-
+   }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.json({ limit: '50mb' }));
 
@@ -39,8 +32,6 @@ app.get('/', async (req, res) => {
 })
 
 app.use(cookieParser())
-
-
 
 app.use('/api/v1', userRoutes)
 app.use('/api/v1', productRoute)
