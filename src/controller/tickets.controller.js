@@ -6,15 +6,11 @@ const ftp = require("basic-ftp");
 const { Client } = require("basic-ftp");
 const sendEmail = require('../controller/email.controller.js')
 
-
-
-
 // model
 
 const ticketModel = require('../models/tickets.model.js');
 const userModel = require('../models/users.model.js')
 const mongoose = require('mongoose')
-
 // const storage = new Storage(path.join(__dirname, 'service-account.json'))
 const storage = new Storage({
   credentials: {
@@ -171,15 +167,13 @@ const createTicket = async (req, res) => {
 // post tickets
 const postTickets = async (req, res) => {
   try {
-    const { clientId, title, raisedBy, status, createdBy, attachment, comments, } = req.body;
+    const { clientId, title, raisedBy, status, createdBy, attachment, comments } = req.body;
 
-    // Validate status if provided
     const validStatuses = ["raised", "onGoing", "resolved"];
     if (status && !validStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid status value" });
     }
 
-    // Create a new ticket
     const newTicket = new ticketModel({
       clientId,
       title,
@@ -191,12 +185,24 @@ const postTickets = async (req, res) => {
     });
 
     await newTicket.save();
+
+    const message = {
+      type: "ticketCreated",
+      data: {
+        title: newTicket.title,
+        status: newTicket.status,
+        createdAt: newTicket.createdAt,
+        raisedBy: newTicket.raisedBy
+      }
+    };
+
     res.status(201).json({ message: "Ticket created successfully", newTicket });
   } catch (error) {
     console.error("Error creating ticket:", error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 const postTicketAttachment = async (req, res) => {
   try {
@@ -244,6 +250,8 @@ const postTicketAttachment = async (req, res) => {
       });
 
       await newTicket.save();
+
+
       res.status(201).json({ message: "Ticket created successfully", newTicket });
     });
 
@@ -507,7 +515,7 @@ const postTicketAttachmentFtp = async (req, res) => {
     if (title && typeof title === 'string' && title.trim() === '') {
       return res.status(400).json({ error: "Title cannot be empty if provided" });
     }
-    
+
     if (description && typeof description === 'string' && description.trim() === '') {
       return res.status(400).json({ error: "Description cannot be empty if provided" });
     }
@@ -586,6 +594,24 @@ const postTicketAttachmentFtp = async (req, res) => {
     });
 
     await newTicket.save();
+
+    const message = {
+      type: 'ticketCreated',
+      data: {
+        ticketNumber: newTicket.ticketNumber,
+        title: newTicket.title,
+        description: newTicket.description,
+        createdAt: newTicket.createdAt
+      }
+    };
+
+    global.wss?.clients?.forEach(client => {
+      console.log('➡️ Client state:', client.readyState);
+      if (client.readyState === 1) {
+        client.send(JSON.stringify(message));
+      }
+    });
+
     console.log("Ticket saved successfully.");
 
     res.status(201).json({ message: "Ticket created successfully", newTicket });
@@ -881,9 +907,9 @@ const updateTicket = async (req, res, next) => {
 
 const addCommentToTicket = async (req, res) => {
   const ticketId = req.params.id;
-  const { comment, commentedBy } = req.body;
+  const { comment, commentedBy, lastlyRepliedBy } = req.body;
 
-  if (!comment || !commentedBy) {
+  if (!comment || !commentedBy || !lastlyRepliedBy) {
     return res.status(400).json({ error: 'Comment and commentedBy are required.' });
   }
 
@@ -910,7 +936,7 @@ const addCommentToTicket = async (req, res) => {
           host: "srv680.main-hosting.eu",  // Your FTP hostname
           user: "u948610439",       // Your FTP username
           password: "Bsrenuk@1993",   // Your FTP password
-          secure: false  
+          secure: false
         });
 
         // Upload file to FTP server
@@ -941,6 +967,7 @@ const addCommentToTicket = async (req, res) => {
             commentedAt: new Date(),
           },
         },
+        lastlyRepliedBy
       },
       { new: true }
     );
@@ -1013,13 +1040,13 @@ const updateStatus = async (req, res) => {
 
     if (status === 'resolved') {
       // Find the client's email using the clientId from the ticket
-      const client = await userModel.findOne({clientId : ticket.clientId});
-      
+      const client = await userModel.findOne({ clientId: ticket.clientId });
+
       if (!client) {
         console.log("Client not found for ticket:", ticketNumber);
-        return res.status(200).json({ 
-          message: "Status updated but client email not found", 
-          ticket: updated 
+        return res.status(200).json({
+          message: "Status updated but client email not found",
+          ticket: updated
         });
       }
 
@@ -1037,6 +1064,23 @@ const updateStatus = async (req, res) => {
 
       await sendEmail(to, subject, html); // your custom mail function
     }
+
+    const message = {
+      type: 'updateStatus',
+      data: {
+        ticketNumber: updated.ticketNumber,
+        title: updated.title,
+        description: updated.description,
+        createdAt: updated.createdAt
+      }
+    };
+
+    global.wss?.clients?.forEach(client => {
+      console.log('➡️ Client state:', client.readyState);
+      if (client.readyState === 1) {
+        client.send(JSON.stringify(message));
+      }
+    });
 
     res.status(200).json({ message: "Status updated", ticket: updated });
   } catch (error) {
@@ -1081,44 +1125,126 @@ const updateAdminStatus = async (req, res) => {
   }
 };
 
-const clientNotificationFalse = async(req, res) => {
-  try{
-    const {ticketNumber} = req.params
+const updateTicketTypeAndSubType = async (req, res) => {
+  try {
+    const { ticketNumber } = req.params;
+    const { ticketType, ticketSubType } = req.body.data;
+
+    // Find the ticket
+    const ticket = await ticketModel.findOne({ ticketNumber });
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    const updates = {};
+    let message = '';
+
+    // Check and update ticketType
+    if (ticketType && ticket.ticketType !== ticketType) {
+      updates.ticketType = ticketType;
+      message += `Ticket type updated to '${ticketType}'. `;
+    }
+
+    // Check and update ticketSubType
+    if (ticketSubType && ticket.ticketSubType !== ticketSubType) {
+      updates.ticketSubType = ticketSubType;
+      message += `Ticket sub-type updated to '${ticketSubType}'.`;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(200).json({ message: "No update needed. Ticket type and sub-type are the same." });
+    }
+
+    const updatedTicket = await ticketModel.findOneAndUpdate(
+      { ticketNumber },
+      { $set: updates },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: message.trim(),
+      ticket: updatedTicket
+    });
+
+  } catch (error) {
+    console.error("Error updating ticket type/sub-type:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+module.exports = {
+  createTicket
+};
+
+const clientNotificationFalse = async (req, res) => {
+  try {
+    const { ticketNumber } = req.params
 
     if (!ticketNumber) return res.status(404).json({ message: "Ticket not found" });
 
     const updated = await ticketModel.findOneAndUpdate(
       { ticketNumber },
-      { $set: {clientNotification : false} },
+      { $set: { clientNotification: false } },
     );
 
     res.status(200).json({ message: "Status updated", ticket: updated });
 
   }
-  catch(error){
+  catch (error) {
     res.status(500).json({ message: error.message })
   }
 }
 
-const adminNotificationFalse = async(req, res) => {
-  try{
-    const {ticketNumber} = req.params
+const adminNotificationFalse = async (req, res) => {
+  try {
+    const { ticketNumber } = req.params
 
     if (!ticketNumber) return res.status(404).json({ message: "Ticket not found" });
 
     const updated = await ticketModel.findOneAndUpdate(
       { ticketNumber },
-      { $set: {adminNotification : false} },
+      { $set: { adminNotification: false } },
     );
 
     res.status(200).json({ message: "Status updated", ticket: updated });
 
   }
-  catch(error){
+  catch (error) {
     res.status(500).json({ message: error.message })
   }
 }
 
+const asignedTo = async (req, res) => {
+  try {
+    const { ticketNumber } = req.params;
+    const { assignedTo } = req.body;
+
+    if (!ticketNumber) {
+      return res.status(400).json({ message: "Ticket number is required" });
+    }
+
+    if (!assignedTo) {
+      return res.status(400).json({ message: "Assigned To value is required" });
+    }
+
+      const updated = await ticketModel.findOneAndUpdate(
+      { ticketNumber: ticketNumber },     // Explicit match
+      { $set: { assignedTo: assignedTo } }, // Explicit update
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    res.status(200).json({ message: "Assigned successfully", ticket: updated });
+    
+  } catch (error) {
+    console.error("Error in assigning ticket:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
 
 
-module.exports = { postTickets, createTicket, getAllTickets, postTicketAttachment, getTicketsByClientId, updateTicket, postTicketAttachmentFtp, addCommentToTicket, updateClientPriority, updateStatus, updateAdminStatus, clientNotificationFalse, adminNotificationFalse };
+module.exports = { postTickets, createTicket, getAllTickets, postTicketAttachment, getTicketsByClientId, updateTicket, postTicketAttachmentFtp, addCommentToTicket, updateClientPriority, updateStatus, updateAdminStatus, clientNotificationFalse, adminNotificationFalse, updateTicketTypeAndSubType, asignedTo };

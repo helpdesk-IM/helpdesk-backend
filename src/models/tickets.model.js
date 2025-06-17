@@ -47,8 +47,8 @@ const ticketSchema = new mongoose.Schema(
     ],
     status: {
       type: String,
-      enum: ['raised', 'on-going', 'resolved'],
-      default: 'raised',
+      enum: ['New', 'Open', 'Hold', 'In Process', 'Requirement Not Finalized', 'Requirement Not Finalized', 'Commercial Approved', 'Ready', 'Deployed', 'Specification Sent', 'Commercial Sent', 'Complete', 'Closed'],
+      default: 'New',
     },
     statusTimestamps: {
       raised: { type: Date },
@@ -57,7 +57,7 @@ const ticketSchema = new mongoose.Schema(
     },
     clientPriority: {
       type: String,
-      enum: ['low', 'medium', 'high'],
+      enum: ['Level 1', 'Level 2', 'Level 3'],
     },
     clientPriorityTimestamps: {
       low: { type: Date },
@@ -76,6 +76,14 @@ const ticketSchema = new mongoose.Schema(
       deployed: { type: Date },
       resolved: { type: Date },
     },
+    ticketType: {
+      type: String,
+      enum: ['Incident', 'Change Request', 'Understanding the Issue', 'Training / Guidance']
+    },
+    ticketSubType: {
+      type: String,
+      enum: ['Limited Impact', 'Business Critical', 'Function Critical', 'Cosmetic Impact', 'Chargeable', 'Non-Chargeable']
+    },
     ticketFor: {
       type: String,
       required: true
@@ -91,18 +99,24 @@ const ticketSchema = new mongoose.Schema(
     adminNotification: {
       type: Boolean,
       default: true
+    },
+    lastlyRepliedBy: {
+      type : String
+    },
+    assignedTo : {
+      type : String
     }
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 ticketSchema.virtual("userDetails", {
   ref: "User",
   localField: "clientId",
   foreignField: "clientId",
-  justOne: true, // Return a single user object
+  justOne: true,
 });
 
 ticketSchema.set('toObject', { virtuals: true });
